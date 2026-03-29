@@ -1,0 +1,289 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Role {
+  CANDIDATE
+  EMPLOYER
+  ADMIN
+}
+
+enum JobType {
+  FULL_TIME
+  PART_TIME
+  CONTRACT
+  INTERNSHIP
+}
+
+enum JobStatus {
+  DRAFT
+  ACTIVE
+  PAUSED
+  CLOSED
+}
+
+enum ApplicationStatus {
+  APPLIED
+  VIEWED
+  SHORTLISTED
+  INTERVIEW
+  OFFERED
+  HIRED
+  REJECTED
+}
+
+enum LeadStatus {
+  NEW
+  CONTACTED
+  QUALIFIED
+  CONVERTED
+  LOST
+}
+
+enum AgreementStatus {
+  ACTIVE
+  EXPIRED
+  TERMINATED
+}
+
+model User {
+  id               String            @id @default(cuid())
+  name             String
+  email            String            @unique
+  phone            String?
+  password         String
+  role             Role              @default(CANDIDATE)
+  emailVerified    Boolean           @default(false)
+  phoneVerified    Boolean           @default(false)
+  avatar           String?
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  candidateProfile CandidateProfile?
+  employer         Employer?
+  blogPosts        BlogPost[]
+
+  @@index([email])
+  @@index([phone])
+}
+
+model CandidateProfile {
+  id                 String        @id @default(cuid())
+  userId             String        @unique
+  user               User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  headline           String?
+  summary            String?
+  currentLocation    String?
+  expectedSalary     Int?
+  currentSalary      Int?
+  noticePeriod       String?
+  resumeUrl          String?
+  isActive           Boolean       @default(true)
+  preferredLocations String[]
+  preferredJobTypes  String[]
+  createdAt          DateTime      @default(now())
+  updatedAt          DateTime      @updatedAt
+  experiences        Experience[]
+  education          Education[]
+  applications       Application[]
+  savedJobs          SavedJob[]
+  skills             Skill[]       @relation("CandidateSkills")
+}
+
+model Experience {
+  id          String           @id @default(cuid())
+  candidateId String
+  candidate   CandidateProfile @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+  title       String
+  company     String
+  location    String?
+  startDate   DateTime
+  endDate     DateTime?
+  current     Boolean          @default(false)
+  description String?
+}
+
+model Education {
+  id          String           @id @default(cuid())
+  candidateId String
+  candidate   CandidateProfile @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+  degree      String
+  institution String
+  field       String?
+  startYear   Int
+  endYear     Int?
+  grade       String?
+}
+
+model Skill {
+  id         String             @id @default(cuid())
+  name       String             @unique
+  candidates CandidateProfile[] @relation("CandidateSkills")
+}
+
+model Employer {
+  id          String      @id @default(cuid())
+  userId      String      @unique
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  companyName String
+  industry    String?
+  website     String?
+  logo        String?
+  description String?
+  size        String?
+  locations   String[]
+  verified    Boolean     @default(false)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  jobs        Job[]
+  agreements  Agreement[]
+}
+
+model Job {
+  id              String        @id @default(cuid())
+  employerId      String
+  employer        Employer      @relation(fields: [employerId], references: [id], onDelete: Cascade)
+  title           String
+  slug            String        @unique
+  description     String
+  requirements    String?
+  industry        String?
+  jobType         JobType       @default(FULL_TIME)
+  experienceMin   Int           @default(0)
+  experienceMax   Int           @default(0)
+  salaryMin       Int?
+  salaryMax       Int?
+  salaryHidden    Boolean       @default(false)
+  location        String
+  city            String
+  state           String
+  pincode         String?
+  isRemote        Boolean       @default(false)
+  skills          String[]
+  vacancies       Int           @default(1)
+  status          JobStatus     @default(DRAFT)
+  featured        Boolean       @default(false)
+  approvedByAdmin Boolean       @default(false)
+  expiresAt       DateTime?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  views           Int           @default(0)
+  applications    Application[]
+
+  @@index([slug])
+  @@index([status])
+  @@index([city])
+  @@index([state])
+  @@index([industry])
+}
+
+model Application {
+  id          String            @id @default(cuid())
+  jobId       String
+  job         Job               @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  candidateId String
+  candidate   CandidateProfile  @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+  status      ApplicationStatus @default(APPLIED)
+  coverLetter String?
+  resumeUrl   String?
+  appliedAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+
+  @@unique([jobId, candidateId])
+  @@index([status])
+}
+
+model SavedJob {
+  id          String           @id @default(cuid())
+  candidateId String
+  candidate   CandidateProfile @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+  jobId       String
+  createdAt   DateTime         @default(now())
+
+  @@unique([candidateId, jobId])
+}
+
+model BlogPost {
+  id              String    @id @default(cuid())
+  title           String
+  slug            String    @unique
+  content         String
+  excerpt         String?
+  coverImage      String?
+  category        String?
+  tags            String[]
+  authorId        String
+  author          User      @relation(fields: [authorId], references: [id])
+  published       Boolean   @default(false)
+  publishedAt     DateTime?
+  views           Int       @default(0)
+  metaTitle       String?
+  metaDescription String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@index([slug])
+}
+
+model Lead {
+  id          String     @id @default(cuid())
+  companyName String
+  contactName String
+  email       String
+  phone       String?
+  message     String?
+  source      String?
+  status      LeadStatus @default(NEW)
+  assignedTo  String?
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+}
+
+model Agreement {
+  id          String          @id @default(cuid())
+  employerId  String
+  employer    Employer        @relation(fields: [employerId], references: [id])
+  documentUrl String
+  startDate   DateTime
+  endDate     DateTime
+  status      AgreementStatus @default(ACTIVE)
+  createdAt   DateTime        @default(now())
+}
+
+model ContactMessage {
+  id        String   @id @default(cuid())
+  name      String
+  email     String
+  phone     String?
+  subject   String
+  message   String
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+}
+
+model GuestApplication {
+  id                String   @id @default(cuid())
+  jobId             String
+  name              String
+  email             String
+  phone             String
+  experience        Int?
+  salaryExpectation Int?
+  resumeUrl         String?
+  message           String?
+  status            String   @default("NEW")
+  appliedAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@index([jobId])
+  @@index([email])
+}
+
+model SiteSettings {
+  id    String @id @default(cuid())
+  key   String @unique
+  value String
+}
