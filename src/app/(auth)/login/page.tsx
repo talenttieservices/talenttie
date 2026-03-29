@@ -40,7 +40,10 @@ function LoginForm() {
           </div>
         </div>
         <div>
-          <label className="block text-sm font-medium text-navy mb-2">Password</label>
+          <div className="flex items-center justify-between mb-2">
+            <label className="block text-sm font-medium text-navy">Password</label>
+            <Link href="/forgot-password" className="text-sm text-primary hover:underline">Forgot password?</Link>
+          </div>
           <div className="relative">
             <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
             <input type={showPassword ? "text" : "password"} value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Enter your password" required minLength={6} className="w-full pl-12 pr-12 py-3.5 bg-gray-50 border border-gray-200 rounded-xl text-navy placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all" />
