@@ -10,7 +10,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
         <div className="absolute bottom-20 right-20 w-96 h-96 bg-primary/5 rounded-full blur-3xl animate-float" style={{ animationDelay: "2s" }} />
         <div className="absolute top-[15%] right-[15%] w-24 h-24 rounded-2xl bg-white/5 backdrop-blur-sm border border-white/10 animate-float" style={{ animationDelay: "1s", transform: "perspective(500px) rotateY(-15deg) rotateX(10deg)" }} />
         <div className="relative text-center px-12 max-w-lg">
-          <Image src="/logo.png" alt="TalentTie" width={120} height={120} className="mx-auto mb-8" />
+          <Image src="/logo-symbol.png" alt="TalentTie" width={180} height={60} className="mx-auto mb-8 h-16 w-auto" />
           <h2 className="text-3xl font-bold text-white mb-4">Your Career Journey <span className="text-primary">Starts Here</span></h2>
           <p className="text-gray-400 text-lg mb-8">Join thousands of job seekers who found their dream careers through TalentTie. Opportunities in 500+ cities across India.</p>
           <div className="flex justify-center gap-8">
