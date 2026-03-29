@@ -30,18 +30,42 @@ export default function Navbar() {
       <header className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${isScrolled ? "glass shadow-3d py-2" : "bg-transparent py-4"}`}>
         <nav className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2 group">
-            <Image src="/logo-symbol.png" alt="TalentTie" width={140} height={48} className="h-10 w-auto transition-transform group-hover:scale-105" priority />
+            <Image
+              src="/logo-symbol.png"
+              alt="TalentTie"
+              width={140}
+              height={48}
+              className={`h-10 w-auto transition-all group-hover:scale-105 ${!isScrolled ? "brightness-0 invert" : ""}`}
+              priority
+            />
           </Link>
           <div className="hidden lg:flex items-center gap-1">
             {navLinks.map((link) => (
-              <Link key={link.href} href={link.href} className={`relative px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md ${pathname === link.href ? "text-primary bg-primary/10" : "text-navy hover:text-primary hover:bg-primary/5"}`}>
+              <Link
+                key={link.href}
+                href={link.href}
+                className={`relative px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 hover:-translate-y-0.5 ${
+                  pathname === link.href
+                    ? "text-primary bg-primary/10"
+                    : isScrolled
+                    ? "text-navy hover:text-primary hover:bg-primary/5"
+                    : "text-white/90 hover:text-white hover:bg-white/10"
+                }`}
+              >
                 {link.label}
                 {pathname === link.href && <span className="absolute bottom-0 left-1/2 -translate-x-1/2 w-6 h-0.5 bg-primary rounded-full" />}
               </Link>
             ))}
           </div>
           <div className="hidden lg:flex items-center gap-3">
-            <Link href="/login" className="flex items-center gap-2 px-5 py-2.5 text-sm font-medium text-navy border-2 border-navy/20 rounded-xl hover:border-primary hover:text-primary transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md">
+            <Link
+              href="/login"
+              className={`flex items-center gap-2 px-5 py-2.5 text-sm font-medium rounded-xl border-2 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md ${
+                isScrolled
+                  ? "text-navy border-navy/20 hover:border-primary hover:text-primary"
+                  : "text-white border-white/30 hover:border-white hover:bg-white/10"
+              }`}
+            >
               <LogIn className="w-4 h-4" />Login
             </Link>
             <Link href="/register" className="flex items-center gap-2 px-5 py-2.5 text-sm font-medium text-white bg-primary rounded-xl btn-3d hover:-translate-y-0.5 transition-all duration-200">
@@ -49,7 +73,7 @@ export default function Navbar() {
             </Link>
           </div>
           <button onClick={() => setIsMobileOpen(true)} className="lg:hidden p-2 rounded-lg hover:bg-primary/10 transition-colors" aria-label="Open menu">
-            <Menu className="w-6 h-6 text-navy" />
+            <Menu className={`w-6 h-6 ${isScrolled ? "text-navy" : "text-white"}`} />
           </button>
         </nav>
       </header>
