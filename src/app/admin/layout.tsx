@@ -3,7 +3,7 @@ import { useState } from "react"
 import Link from "next/link"
 import Image from "next/image"
 import { usePathname } from "next/navigation"
-import { LayoutDashboard, Users, Building2, Briefcase, FileText, Target, FileCheck, BarChart3, Settings, Menu, X, LogOut } from "lucide-react"
+import { LayoutDashboard, Users, Building2, Briefcase, FileText, Target, FileCheck, BarChart3, Settings, Menu, X, LogOut, ClipboardList } from "lucide-react"
 import { signOut } from "next-auth/react"
 
 const navItems = [
@@ -11,6 +11,7 @@ const navItems = [
   { href: "/admin/users", label: "Users", icon: Users },
   { href: "/admin/employers", label: "Employers", icon: Building2 },
   { href: "/admin/jobs", label: "Jobs", icon: Briefcase },
+  { href: "/admin/applications", label: "Applications", icon: ClipboardList },
   { href: "/admin/blog", label: "Blog", icon: FileText },
   { href: "/admin/leads", label: "Leads", icon: Target },
   { href: "/admin/agreements", label: "Agreements", icon: FileCheck },
