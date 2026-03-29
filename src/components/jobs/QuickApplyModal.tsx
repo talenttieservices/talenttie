@@ -18,10 +18,34 @@ export default function QuickApplyModal({ isOpen, onClose, jobTitle, company, jo
     experience: "", salaryExpectation: "", resumeUrl: "", message: "",
   })
   const [loading, setLoading] = useState(false)
+  const [uploading, setUploading] = useState(false)
   const [success, setSuccess] = useState(false)
   const [error, setError] = useState("")
 
   if (!isOpen) return null
+
+  async function handleFileUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setUploading(true)
+    setError("")
+    try {
+      const fd = new FormData()
+      fd.append("file", file)
+      fd.append("name", form.name || "Applicant")
+      fd.append("email", form.email || "")
+      fd.append("phone", form.phone || "")
+      fd.append("jobTitle", jobTitle)
+      const res = await fetch("/api/upload", { method: "POST", body: fd })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || "Upload failed")
+      setForm(f => ({ ...f, resumeUrl: data.url }))
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Upload failed")
+    } finally {
+      setUploading(false)
+    }
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -136,16 +160,23 @@ export default function QuickApplyModal({ isOpen, onClose, jobTitle, company, jo
               </div>
             </div>
 
-            {/* Resume link */}
+            {/* Resume upload */}
             <div>
               <label className="block text-xs font-medium text-gray-500 mb-1.5">
-                <span className="flex items-center gap-1"><Upload className="w-3.5 h-3.5" />Resume Link <span className="text-gray-400">(Google Drive / Dropbox link)</span></span>
+                <span className="flex items-center gap-1"><Upload className="w-3.5 h-3.5" />Upload Resume <span className="text-gray-400">(PDF or Word, max 5MB)</span></span>
               </label>
-              <input type="url" placeholder="https://drive.google.com/..."
-                value={form.resumeUrl} onChange={e => setForm(f => ({ ...f, resumeUrl: e.target.value }))}
-                className="w-full px-4 py-2.5 rounded-xl border border-gray-200 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 text-sm transition-all"
-              />
-              <p className="text-xs text-gray-400 mt-1">Share a Google Drive or Dropbox link to your resume PDF</p>
+              <label className={`flex items-center justify-center gap-2 w-full px-4 py-3 rounded-xl border-2 border-dashed cursor-pointer transition-all text-sm
+                ${form.resumeUrl ? "border-primary bg-primary/5 text-primary" : "border-gray-200 hover:border-primary hover:bg-primary/5 text-gray-500"}`}>
+                <Upload className="w-4 h-4" />
+                {uploading ? "Uploading..." : form.resumeUrl ? "✓ Resume uploaded" : "Click to upload resume"}
+                <input type="file" accept=".pdf,.doc,.docx" onChange={handleFileUpload} className="hidden" disabled={uploading} />
+              </label>
+              {form.resumeUrl && (
+                <div className="flex items-center justify-between mt-1.5">
+                  <p className="text-xs text-primary">File uploaded successfully</p>
+                  <button type="button" onClick={() => setForm(f => ({ ...f, resumeUrl: "" }))} className="text-xs text-gray-400 hover:text-red-500">Remove</button>
+                </div>
+              )}
             </div>
 
             {/* Message */}

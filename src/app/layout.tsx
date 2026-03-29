@@ -25,6 +25,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <head>
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({ "@context": "https://schema.org", "@type": "Organization", name: "TalentTie", url: "https://talenttie.com", logo: "https://talenttie.com/logo.png", description: "India's recruitment platform for Tier 2, Tier 3 cities and rural areas", contactPoint: { "@type": "ContactPoint", telephone: "+91-9913677622", contactType: "customer service", email: "recruitment@talenttie.com", areaServed: "IN", availableLanguage: ["English", "Hindi"] }, sameAs: ["https://www.linkedin.com/company/talenttie-services"] }) }} />
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({ "@context": "https://schema.org", "@type": "WebSite", name: "TalentTie", url: "https://talenttie.com", potentialAction: { "@type": "SearchAction", target: "https://talenttie.com/jobs?search={search_term_string}", "query-input": "required name=search_term_string" } }) }} />
+        {process.env.NEXT_PUBLIC_GA_ID && (
+          <>
+            <script async src={`https://www.googletagmanager.com/gtag/js?id=${process.env.NEXT_PUBLIC_GA_ID}`} />
+            <script dangerouslySetInnerHTML={{ __html: `window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','${process.env.NEXT_PUBLIC_GA_ID}',{page_path:window.location.pathname});` }} />
+          </>
+        )}
       </head>
       <body className={`${inter.className} antialiased`}>
         <Navbar />
