@@ -1,15 +1,15 @@
 "use client"
 import { useEffect, useState, useCallback } from "react"
-import { useParams } from "next/navigation"
 import Link from "next/link"
 import {
-  ArrowLeft, Users, Loader2, Search, X, FileText,
-  ChevronDown, Mail, Phone, Download, StickyNote,
+  Users, Loader2, Search, X, FileText,
+  ChevronDown, Mail, Phone, Download, StickyNote, ExternalLink,
 } from "lucide-react"
 import { GUEST_APP_STATUS } from "@/lib/constants"
 
 interface Application {
   id: string
+  jobId: string
   name: string
   email: string
   phone: string
@@ -21,21 +21,14 @@ interface Application {
   appliedAt: string
   resumeUrl: string | null
   resumeFilename: string | null
-}
-
-interface Job {
-  id: string
-  title: string
-  city: string
-  status: string
-  vacancies: number
+  jobTitle: string
+  jobSlug: string
+  jobCity: string
 }
 
 const statusInfo = Object.fromEntries(GUEST_APP_STATUS.map(s => [s.value, s]))
 
-export default function EmployerJobApplicantsPage() {
-  const { id } = useParams<{ id: string }>()
-  const [job, setJob] = useState<Job | null>(null)
+export default function EmployerApplicationsPage() {
   const [applications, setApplications] = useState<Application[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState("")
@@ -45,33 +38,40 @@ export default function EmployerJobApplicantsPage() {
   const [activeApp, setActiveApp] = useState<Application | null>(null)
   const [noteText, setNoteText] = useState("")
   const [savingNote, setSavingNote] = useState(false)
+  const [jobs, setJobs] = useState<{ id: string; title: string }[]>([])
+  const [jobFilter, setJobFilter] = useState("ALL")
 
-  const fetchApplicants = useCallback(async () => {
+  // Load employer's jobs for filter
+  useEffect(() => {
+    fetch("/api/employer/my-jobs")
+      .then(r => r.json())
+      .then(d => setJobs((d.jobs || []).map((j: { id: string; title: string }) => ({ id: j.id, title: j.title }))))
+      .catch(() => {})
+  }, [])
+
+  const fetchApplications = useCallback(async () => {
     setLoading(true)
     try {
       const params = new URLSearchParams()
       if (statusFilter !== "ALL") params.set("status", statusFilter)
       if (search) params.set("search", search)
-      const res = await fetch(`/api/employer/jobs/${id}/applicants?${params}`)
+      if (jobFilter !== "ALL") params.set("jobId", jobFilter)
+      const res = await fetch(`/api/employer/applications?${params}`)
       const data = await res.json()
-      if (res.ok) {
-        setJob(data.job)
-        setApplications(data.applications || [])
-      }
+      setApplications(data.applications || [])
     } catch {
       setApplications([])
     } finally {
       setLoading(false)
     }
-  }, [id, statusFilter, search])
+  }, [statusFilter, search, jobFilter])
 
   useEffect(() => {
-    fetchApplicants()
-  }, [fetchApplicants])
+    fetchApplications()
+  }, [fetchApplications])
 
-  // Status update for single applicant
-  async function updateStatus(appId: string, status: string) {
-    await fetch(`/api/employer/jobs/${id}/applicants`, {
+  async function updateStatus(appId: string, jobId: string, status: string) {
+    await fetch(`/api/employer/jobs/${jobId}/applicants`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ appId, status }),
@@ -80,25 +80,31 @@ export default function EmployerJobApplicantsPage() {
     if (activeApp?.id === appId) setActiveApp(prev => prev ? { ...prev, status } : null)
   }
 
-  // Bulk status update
   async function applyBulkStatus() {
     if (!bulkStatus || selected.size === 0) return
-    const ids = Array.from(selected)
-    await fetch(`/api/employer/jobs/${id}/applicants`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ids, status: bulkStatus }),
+    // Group by jobId
+    const grouped: Record<string, string[]> = {}
+    applications.filter(a => selected.has(a.id)).forEach(a => {
+      if (!grouped[a.jobId]) grouped[a.jobId] = []
+      grouped[a.jobId].push(a.id)
     })
+    await Promise.all(Object.entries(grouped).map(([jobId, ids]) =>
+      fetch(`/api/employer/jobs/${jobId}/applicants`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ids, status: bulkStatus }),
+      })
+    ))
+    const ids = Array.from(selected)
     setApplications(prev => prev.map(a => ids.includes(a.id) ? { ...a, status: bulkStatus } : a))
     setSelected(new Set())
     setBulkStatus("")
   }
 
-  // Save note
   async function saveNote() {
     if (!activeApp) return
     setSavingNote(true)
-    await fetch(`/api/employer/jobs/${id}/applicants`, {
+    await fetch(`/api/employer/jobs/${activeApp.jobId}/applicants`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ appId: activeApp.id, notes: noteText }),
@@ -117,11 +123,6 @@ export default function EmployerJobApplicantsPage() {
     })
   }
 
-  const toggleAll = () => {
-    if (selected.size === applications.length) setSelected(new Set())
-    else setSelected(new Set(applications.map(a => a.id)))
-  }
-
   const openPanel = (app: Application) => {
     setActiveApp(app)
     setNoteText(app.notes || "")
@@ -134,28 +135,11 @@ export default function EmployerJobApplicantsPage() {
 
   return (
     <div>
-      {/* Header */}
-      <div className="flex items-center gap-3 mb-5">
-        <Link href="/employer/jobs" className="p-2 hover:bg-gray-100 rounded-xl transition-colors">
-          <ArrowLeft className="w-5 h-5 text-gray-500" />
-        </Link>
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-3 flex-wrap">
-            <h1 className="text-xl font-bold text-navy truncate">{job?.title || "Applicants"}</h1>
-            {job && (
-              <span className="px-2.5 py-1 bg-primary/10 text-primary rounded-full text-xs font-medium">
-                {job.city}
-              </span>
-            )}
-          </div>
-          <p className="text-sm text-gray-500 mt-0.5">{applications.length} total applicants</p>
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h1 className="text-2xl font-bold text-navy">All Applications</h1>
+          <p className="text-sm text-gray-500 mt-0.5">{applications.length} total application{applications.length !== 1 ? "s" : ""}</p>
         </div>
-        {job && (
-          <Link href={`/jobs/${id}`} target="_blank"
-            className="px-4 py-2 text-sm border border-gray-200 rounded-xl hover:border-primary hover:text-primary transition-colors hidden sm:block">
-            View Job ↗
-          </Link>
-        )}
       </div>
 
       {/* Status tabs */}
@@ -172,7 +156,7 @@ export default function EmployerJobApplicantsPage() {
         ))}
       </div>
 
-      {/* Search + Bulk actions */}
+      {/* Filters */}
       <div className="flex items-center gap-3 mb-4 flex-wrap">
         <div className="relative flex-1 min-w-[200px]">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
@@ -186,15 +170,21 @@ export default function EmployerJobApplicantsPage() {
           )}
         </div>
 
+        {jobs.length > 0 && (
+          <select value={jobFilter} onChange={e => setJobFilter(e.target.value)}
+            className="px-4 py-2.5 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/20">
+            <option value="ALL">All Jobs</option>
+            {jobs.map(j => <option key={j.id} value={j.id}>{j.title}</option>)}
+          </select>
+        )}
+
         {selected.size > 0 && (
           <div className="flex items-center gap-2 bg-primary/5 border border-primary/20 rounded-xl px-3 py-1.5">
             <span className="text-sm text-primary font-medium">{selected.size} selected</span>
             <select value={bulkStatus} onChange={e => setBulkStatus(e.target.value)}
               className="text-sm border-0 bg-transparent text-gray-600 focus:outline-none">
               <option value="">Change status...</option>
-              {GUEST_APP_STATUS.map(s => (
-                <option key={s.value} value={s.value}>{s.label}</option>
-              ))}
+              {GUEST_APP_STATUS.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
             </select>
             {bulkStatus && (
               <button onClick={applyBulkStatus}
@@ -214,8 +204,8 @@ export default function EmployerJobApplicantsPage() {
       ) : applications.length === 0 ? (
         <div className="bg-white rounded-2xl p-12 shadow-3d border border-gray-100 text-center">
           <Users className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-          <h3 className="text-xl font-semibold text-navy mb-2">No applicants yet</h3>
-          <p className="text-gray-500">Applicants will appear here once candidates apply.</p>
+          <h3 className="text-xl font-semibold text-navy mb-2">No applications yet</h3>
+          <p className="text-gray-500">Applications will appear here once candidates apply to your jobs.</p>
         </div>
       ) : (
         <div className="bg-white rounded-2xl border border-gray-100 shadow-3d overflow-hidden">
@@ -223,12 +213,17 @@ export default function EmployerJobApplicantsPage() {
             <thead>
               <tr className="bg-gray-50 border-b border-gray-100">
                 <th className="py-3 px-4 text-left">
-                  <input type="checkbox" checked={selected.size === applications.length && applications.length > 0}
-                    onChange={toggleAll} className="w-4 h-4 accent-primary" />
+                  <input type="checkbox"
+                    checked={selected.size === applications.length && applications.length > 0}
+                    onChange={() => {
+                      if (selected.size === applications.length) setSelected(new Set())
+                      else setSelected(new Set(applications.map(a => a.id)))
+                    }}
+                    className="w-4 h-4 accent-primary" />
                 </th>
                 <th className="py-3 px-4 text-left font-medium text-gray-500">Candidate</th>
-                <th className="py-3 px-4 text-left font-medium text-gray-500 hidden md:table-cell">Experience</th>
-                <th className="py-3 px-4 text-left font-medium text-gray-500 hidden lg:table-cell">Expected CTC</th>
+                <th className="py-3 px-4 text-left font-medium text-gray-500 hidden md:table-cell">Job</th>
+                <th className="py-3 px-4 text-left font-medium text-gray-500 hidden lg:table-cell">Experience</th>
                 <th className="py-3 px-4 text-left font-medium text-gray-500">Status</th>
                 <th className="py-3 px-4 text-left font-medium text-gray-500 hidden sm:table-cell">Applied</th>
                 <th className="py-3 px-4 text-left font-medium text-gray-500">Resume</th>
@@ -248,20 +243,24 @@ export default function EmployerJobApplicantsPage() {
                         <div className="font-medium text-navy group-hover:text-primary transition-colors">{app.name}</div>
                         <div className="text-xs text-gray-400 flex items-center gap-3 mt-0.5">
                           <span className="flex items-center gap-1"><Mail className="w-3 h-3" />{app.email}</span>
-                          {app.phone && <span className="flex items-center gap-1 hidden sm:flex"><Phone className="w-3 h-3" />{app.phone}</span>}
                         </div>
                       </button>
                     </td>
-                    <td className="py-3 px-4 text-gray-600 hidden md:table-cell">
-                      {app.experience ? `${app.experience} yrs` : "-"}
+                    <td className="py-3 px-4 hidden md:table-cell">
+                      <Link href={`/employer/jobs/${app.jobId}/applicants`}
+                        className="text-primary hover:underline text-xs font-medium flex items-center gap-1">
+                        {app.jobTitle}
+                        <ExternalLink className="w-3 h-3" />
+                      </Link>
+                      <div className="text-xs text-gray-400">{app.jobCity}</div>
                     </td>
                     <td className="py-3 px-4 text-gray-600 hidden lg:table-cell">
-                      {app.salaryExpectation ? `₹${app.salaryExpectation}` : "-"}
+                      {app.experience ? `${app.experience} yrs` : "-"}
                     </td>
                     <td className="py-3 px-4">
-                      <div className="relative group/status">
+                      <div className="relative">
                         <select value={app.status}
-                          onChange={e => updateStatus(app.id, e.target.value)}
+                          onChange={e => updateStatus(app.id, app.jobId, e.target.value)}
                           className={`text-xs font-medium px-2.5 py-1 rounded-full border-0 cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary/30 appearance-none pr-6 ${si.color}`}>
                           {GUEST_APP_STATUS.map(s => (
                             <option key={s.value} value={s.value}>{s.label}</option>
@@ -291,17 +290,20 @@ export default function EmployerJobApplicantsPage() {
         </div>
       )}
 
-      {/* Profile Slide-over Panel */}
+      {/* Profile Slide-over */}
       {activeApp && (
         <>
           <div className="fixed inset-0 bg-black/30 z-40" onClick={() => setActiveApp(null)} />
           <div className="fixed top-0 right-0 h-full w-full max-w-md bg-white z-50 shadow-2xl flex flex-col overflow-hidden">
-            {/* Panel Header */}
             <div className="p-5 border-b border-gray-100 flex items-start justify-between shrink-0">
               <div>
                 <h2 className="font-bold text-navy text-lg">{activeApp.name}</h2>
                 <p className="text-sm text-gray-500">{activeApp.email}</p>
                 {activeApp.phone && <p className="text-sm text-gray-500">{activeApp.phone}</p>}
+                <Link href={`/employer/jobs/${activeApp.jobId}/applicants`}
+                  className="text-xs text-primary hover:underline flex items-center gap-1 mt-1">
+                  {activeApp.jobTitle} <ExternalLink className="w-3 h-3" />
+                </Link>
               </div>
               <button onClick={() => setActiveApp(null)} className="p-2 hover:bg-gray-100 rounded-xl transition-colors">
                 <X className="w-5 h-5 text-gray-500" />
@@ -309,18 +311,14 @@ export default function EmployerJobApplicantsPage() {
             </div>
 
             <div className="flex-1 overflow-y-auto p-5 space-y-5">
-              {/* Status */}
               <div>
-                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2 block">Application Status</label>
-                <select value={activeApp.status} onChange={e => updateStatus(activeApp.id, e.target.value)}
+                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2 block">Status</label>
+                <select value={activeApp.status} onChange={e => updateStatus(activeApp.id, activeApp.jobId, e.target.value)}
                   className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 bg-white">
-                  {GUEST_APP_STATUS.map(s => (
-                    <option key={s.value} value={s.value}>{s.label}</option>
-                  ))}
+                  {GUEST_APP_STATUS.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
                 </select>
               </div>
 
-              {/* Details */}
               <div className="grid grid-cols-2 gap-3">
                 {activeApp.experience && (
                   <div className="bg-gray-50 rounded-xl p-3">
@@ -334,15 +332,8 @@ export default function EmployerJobApplicantsPage() {
                     <p className="text-sm font-semibold text-navy">₹{activeApp.salaryExpectation}</p>
                   </div>
                 )}
-                <div className="bg-gray-50 rounded-xl p-3">
-                  <p className="text-xs text-gray-500 mb-1">Applied On</p>
-                  <p className="text-sm font-semibold text-navy">
-                    {new Date(activeApp.appliedAt).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })}
-                  </p>
-                </div>
               </div>
 
-              {/* Cover Letter / Message */}
               {activeApp.message && (
                 <div>
                   <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2 block">Cover Letter</label>
@@ -352,7 +343,6 @@ export default function EmployerJobApplicantsPage() {
                 </div>
               )}
 
-              {/* Resume */}
               {activeApp.resumeUrl && (
                 <div>
                   <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2 block">Resume</label>
@@ -363,20 +353,18 @@ export default function EmployerJobApplicantsPage() {
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium text-navy truncate">{activeApp.resumeFilename || "Resume"}</p>
-                      <p className="text-xs text-gray-500">Click to view</p>
                     </div>
                     <Download className="w-4 h-4 text-primary shrink-0" />
                   </a>
                 </div>
               )}
 
-              {/* Internal Notes */}
               <div>
                 <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2 flex items-center gap-1">
                   <StickyNote className="w-3.5 h-3.5" />Internal Notes
                 </label>
                 <textarea value={noteText} onChange={e => setNoteText(e.target.value)} rows={3}
-                  placeholder="Add internal notes about this candidate..."
+                  placeholder="Add internal notes..."
                   className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 resize-none" />
                 <button onClick={saveNote} disabled={savingNote}
                   className="mt-2 px-4 py-2 bg-primary text-white text-xs font-medium rounded-xl hover:bg-primary/90 disabled:opacity-60">
@@ -384,7 +372,6 @@ export default function EmployerJobApplicantsPage() {
                 </button>
               </div>
 
-              {/* Contact Actions */}
               <div className="flex gap-3">
                 <a href={`mailto:${activeApp.email}`}
                   className="flex-1 flex items-center justify-center gap-2 py-2.5 border border-gray-200 rounded-xl text-sm text-gray-600 hover:border-primary hover:text-primary transition-colors">
@@ -394,12 +381,6 @@ export default function EmployerJobApplicantsPage() {
                   <a href={`tel:${activeApp.phone}`}
                     className="flex-1 flex items-center justify-center gap-2 py-2.5 border border-gray-200 rounded-xl text-sm text-gray-600 hover:border-primary hover:text-primary transition-colors">
                     <Phone className="w-4 h-4" />Call
-                  </a>
-                )}
-                {activeApp.phone && (
-                  <a href={`https://wa.me/91${activeApp.phone.replace(/\D/g, "")}`} target="_blank" rel="noopener noreferrer"
-                    className="flex-1 flex items-center justify-center gap-2 py-2.5 border border-green-200 rounded-xl text-sm text-green-600 hover:bg-green-50 transition-colors">
-                    WhatsApp
                   </a>
                 )}
               </div>

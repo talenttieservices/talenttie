@@ -27,15 +27,15 @@ export async function generateMetadata({ params }: { params: { slug: string } })
       type: "article",
       publishedTime: (post.publishedAt || post.createdAt).toISOString(),
       modifiedTime: post.updatedAt.toISOString(),
-      authors: post.author ? [post.author] : ["TalentTie"],
+      authors: ["TalentTie"],
       section: post.category || "Career",
-      images: [{ url: post.featuredImage || "/og-image.png", width: 1200, height: 630, alt: post.title }],
+      images: [{ url: post.coverImage || "/og-image.png", width: 1200, height: 630, alt: post.title }],
     },
     twitter: {
       card: "summary_large_image",
       title: post.title,
       description,
-      images: [post.featuredImage || "/og-image.png"],
+      images: [post.coverImage || "/og-image.png"],
     },
   }
 }
@@ -54,12 +54,12 @@ export default async function BlogPostPage({ params }: { params: { slug: string 
     "@id": canonical,
     headline: post.title,
     description: post.excerpt || post.title,
-    image: post.featuredImage || "https://talenttie.com/og-image.png",
+    image: post.coverImage || "https://talenttie.com/og-image.png",
     datePublished: publishedDate,
     dateModified: post.updatedAt.toISOString(),
     author: {
       "@type": "Person",
-      name: post.author || "TalentTie Editorial Team",
+      name: "TalentTie Editorial Team",
       url: "https://talenttie.com/about",
     },
     publisher: {
@@ -107,12 +107,10 @@ export default async function BlogPostPage({ params }: { params: { slug: string 
                 <Calendar className="w-4 h-4" />
                 {new Date(post.publishedAt || post.createdAt).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })}
               </span>
-              {post.readTime && (
-                <span className="flex items-center gap-1">
-                  <Clock className="w-4 h-4" />{post.readTime} min read
-                </span>
-              )}
-              {post.author && <span>By {post.author}</span>}
+              <span className="flex items-center gap-1">
+                <Clock className="w-4 h-4" />~{Math.ceil((post.content?.length || 500) / 1000)} min read
+              </span>
+              <span>By TalentTie Editorial Team</span>
             </div>
           </div>
         </div>

@@ -45,7 +45,15 @@ export const metadata: Metadata = {
     index: true, follow: true,
     googleBot: { index: true, follow: true, "max-video-preview": -1, "max-image-preview": "large", "max-snippet": -1 },
   },
-  icons: { icon: "/favicon.png", apple: "/favicon.png" },
+  icons: {
+    icon: [
+      { url: "/logo-symbol.png", type: "image/png" },
+    ],
+    apple: [
+      { url: "/logo-symbol.png", type: "image/png" },
+    ],
+    shortcut: "/logo-symbol.png",
+  },
   // Uncomment and add your Google Search Console verification token:
   // verification: { google: "YOUR_GSC_VERIFICATION_TOKEN" },
 }

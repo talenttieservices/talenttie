@@ -1,17 +1,38 @@
 export const dynamic = "force-dynamic"
 import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
+import { getServerSession } from "next-auth"
+import { authOptions } from "@/lib/auth"
+import { getEmployerForUser } from "@/lib/employer-auth"
 
+// GET all applications across employer's jobs
 export async function GET(req: Request) {
   try {
+    const session = await getServerSession(authOptions)
+    if (!session?.user?.email) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+
+    const employer = await getEmployerForUser(session.user.email)
+    if (!employer) return NextResponse.json({ applications: [] })
+
     const { searchParams } = new URL(req.url)
     const search = searchParams.get("search") || ""
     const status = searchParams.get("status") || "ALL"
     const jobId = searchParams.get("jobId") || ""
 
-    const where: Record<string, unknown> = {}
+    // Get all employer's job IDs
+    const employerJobs = await prisma.job.findMany({
+      where: { employerId: employer.id },
+      select: { id: true, title: true, slug: true, city: true },
+    })
+    const jobMap = Object.fromEntries(employerJobs.map(j => [j.id, j]))
+    const jobIds = employerJobs.map(j => j.id)
+
+    if (jobIds.length === 0) return NextResponse.json({ applications: [] })
+
+    const where: Record<string, unknown> = {
+      jobId: jobId && jobMap[jobId] ? jobId : { in: jobIds },
+    }
     if (status !== "ALL") where.status = status
-    if (jobId) where.jobId = jobId
     if (search) {
       where.OR = [
         { name: { contains: search, mode: "insensitive" } },
@@ -26,19 +47,10 @@ export async function GET(req: Request) {
       select: {
         id: true, jobId: true, name: true, email: true, phone: true,
         experience: true, salaryExpectation: true, message: true,
-        status: true, notes: true, appliedAt: true, updatedAt: true,
+        status: true, notes: true, appliedAt: true,
         resumeUrl: true, resumeFilename: true,
-        // Don't select resumeData (base64 blob) — too large for list view
       },
     })
-
-    // Enrich with job title by fetching job IDs
-    const jobIds = Array.from(new Set(applications.map(a => a.jobId)))
-    const jobs = await prisma.job.findMany({
-      where: { id: { in: jobIds } },
-      select: { id: true, title: true, slug: true, city: true },
-    })
-    const jobMap = Object.fromEntries(jobs.map(j => [j.id, j]))
 
     const enriched = applications.map(a => ({
       ...a,
@@ -51,23 +63,5 @@ export async function GET(req: Request) {
   } catch (err) {
     console.error(err)
     return NextResponse.json({ applications: [] })
-  }
-}
-
-// Bulk status update
-export async function PATCH(req: Request) {
-  try {
-    const { ids, status } = await req.json()
-    if (!Array.isArray(ids) || !status) {
-      return NextResponse.json({ error: "ids (array) and status required" }, { status: 400 })
-    }
-    await prisma.guestApplication.updateMany({
-      where: { id: { in: ids } },
-      data: { status },
-    })
-    return NextResponse.json({ success: true, updated: ids.length })
-  } catch (err) {
-    console.error(err)
-    return NextResponse.json({ error: "Failed to update" }, { status: 500 })
   }
 }

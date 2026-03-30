@@ -20,7 +20,7 @@ const roleBadge: Record<string, string> = {
   ADMIN: "bg-red-100 text-red-700",
 }
 
-const emptyForm = { name: "", email: "", phone: "", role: "CANDIDATE", password: "", emailVerified: true }
+const emptyForm = { name: "", email: "", phone: "", role: "CANDIDATE", password: "", emailVerified: true, companyName: "", industry: "" }
 
 export default function AdminUsersPage() {
   const [users, setUsers] = useState<User[]>([])
@@ -59,7 +59,7 @@ export default function AdminUsersPage() {
 
   function openEdit(u: User) {
     setEditUser(u)
-    setForm({ name: u.name, email: u.email, phone: u.phone || "", role: u.role, password: "", emailVerified: u.emailVerified })
+    setForm({ name: u.name, email: u.email, phone: u.phone || "", role: u.role, password: "", emailVerified: u.emailVerified, companyName: u.employer?.companyName || "", industry: "" })
     setError("")
     setShowPass(false)
     setShowModal(true)
@@ -77,7 +77,7 @@ export default function AdminUsersPage() {
         res = await fetch(`/api/admin/users/${editUser.id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) })
       } else {
         // Create new user
-        res = await fetch("/api/admin/users", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(form) })
+        res = await fetch("/api/admin/users", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ...form, companyName: form.companyName, industry: form.industry }) })
       }
       const data = await res.json()
       if (!res.ok) { setError(data.error || "Failed"); return }
@@ -257,6 +257,25 @@ export default function AdminUsersPage() {
                   </button>
                 </div>
               </div>
+
+              {/* Employer fields — only shown when role is EMPLOYER */}
+              {form.role === "EMPLOYER" && (
+                <div className="bg-purple-50 border border-purple-100 rounded-xl p-4 space-y-3">
+                  <p className="text-xs font-semibold text-purple-700 uppercase tracking-wide">Employer Details</p>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-500 mb-1.5">Company Name *</label>
+                    <input value={form.companyName} onChange={e => setForm(f => ({ ...f, companyName: e.target.value }))}
+                      placeholder="e.g. Kotak Life Insurance"
+                      className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 bg-white" />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-500 mb-1.5">Industry</label>
+                    <input value={form.industry} onChange={e => setForm(f => ({ ...f, industry: e.target.value }))}
+                      placeholder="e.g. Banking, Insurance, IT"
+                      className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 bg-white" />
+                  </div>
+                </div>
+              )}
 
               {error && <p className="text-red-500 text-sm bg-red-50 px-3 py-2 rounded-lg">{error}</p>}
 

@@ -11,7 +11,7 @@ export default async function BlogPage() {
   const posts = await prisma.blogPost.findMany({
     where: { published: true },
     orderBy: { createdAt: "desc" },
-    select: { title: true, excerpt: true, slug: true, category: true, readTime: true, createdAt: true },
+    select: { title: true, excerpt: true, slug: true, category: true, createdAt: true, content: true },
   }).catch(() => [])
 
   return (
@@ -38,7 +38,7 @@ export default async function BlogPage() {
                   <p className="text-sm text-gray-500 mb-4 line-clamp-2">{post.excerpt}</p>
                   <div className="flex items-center gap-4 text-xs text-gray-400">
                     <span className="flex items-center gap-1"><Calendar className="w-3.5 h-3.5" />{new Date(post.createdAt).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })}</span>
-                    {post.readTime && <span className="flex items-center gap-1"><Clock className="w-3.5 h-3.5" />{post.readTime} min read</span>}
+                    <span className="flex items-center gap-1"><Clock className="w-3.5 h-3.5" />~{Math.ceil((post.content?.length || 500) / 1000)} min</span>
                   </div>
                 </div>
               </Link>

@@ -43,20 +43,18 @@ export async function POST(
       if (body.salaryExpectation !== undefined) salaryExpectation = body.salaryExpectation
     }
 
-    // Validate
     if (!name || name.length < 2) return NextResponse.json({ error: "Name is required" }, { status: 400 })
     if (!email || !email.includes("@")) return NextResponse.json({ error: "Valid email required" }, { status: 400 })
     if (!phone || phone.length < 10) return NextResponse.json({ error: "Valid phone number required" }, { status: 400 })
 
-    // Find job by slug
     const job = await prisma.job.findUnique({
       where: { slug: params.slug },
       select: { id: true, title: true },
     })
     if (!job) return NextResponse.json({ error: "Job not found" }, { status: 404 })
 
-    // Save to DB first (always succeeds regardless of email)
-    await prisma.guestApplication.create({
+    // Save to DB — store resume as base64 so admin can view/download it
+    const app = await prisma.guestApplication.create({
       data: {
         jobId: job.id,
         name,
@@ -64,12 +62,15 @@ export async function POST(
         phone,
         experience,
         salaryExpectation,
-        resumeUrl: resumeFilename ? `file:${resumeFilename}` : null,
+        resumeUrl: resumeFilename ? `resume:${resumeFilename}` : null,
+        resumeData: resumeBuffer ? resumeBuffer.toString("base64") : null,
+        resumeMimeType: resumeContentType || null,
+        resumeFilename: resumeFilename || null,
         message,
       },
     })
 
-    // Send email notification (non-blocking)
+    // Send email notification (non-blocking — never fails the application)
     transporter.sendMail({
       from: FROM,
       to: TO_JOBS,
@@ -90,9 +91,9 @@ export async function POST(
         content: resumeBuffer,
         contentType: resumeContentType,
       }] : [],
-    }).catch(err => console.error("Application email failed:", err))
+    }).catch(err => console.error("Application email failed (non-fatal):", err))
 
-    return NextResponse.json({ success: true, message: "Application submitted successfully!" })
+    return NextResponse.json({ success: true, id: app.id, message: "Application submitted successfully!" })
   } catch (error) {
     console.error("Guest apply error:", error)
     return NextResponse.json({ error: "Failed to submit application" }, { status: 500 })

@@ -37,12 +37,15 @@ export async function GET(req: NextRequest) {
   }
 }
 
-// POST — create new user
+// POST — create new user (with optional employer profile)
 export async function POST(req: NextRequest) {
   try {
-    const { name, email, phone, role, password } = await req.json()
+    const { name, email, phone, role, password, companyName, industry } = await req.json()
     if (!name || !email || !password) {
       return NextResponse.json({ error: "Name, email and password are required" }, { status: 400 })
+    }
+    if (role === "EMPLOYER" && !companyName) {
+      return NextResponse.json({ error: "Company name is required for employer accounts" }, { status: 400 })
     }
 
     const exists = await prisma.user.findUnique({ where: { email } })
@@ -52,6 +55,18 @@ export async function POST(req: NextRequest) {
     const user = await prisma.user.create({
       data: { name, email, phone: phone || null, role: role || "CANDIDATE", password: hashed, emailVerified: true },
     })
+
+    // Auto-create employer profile if role is EMPLOYER
+    if (role === "EMPLOYER") {
+      await prisma.employer.create({
+        data: {
+          userId: user.id,
+          companyName: companyName.trim(),
+          industry: industry || null,
+          verified: true,
+        },
+      })
+    }
 
     return NextResponse.json({ success: true, user: { id: user.id, name: user.name, email: user.email, role: user.role } })
   } catch (err) {

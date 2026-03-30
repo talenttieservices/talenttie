@@ -3,6 +3,7 @@ import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
+import { getEmployerForUser } from "@/lib/employer-auth"
 
 export async function GET() {
   try {
@@ -11,34 +12,29 @@ export async function GET() {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
-    const user = await prisma.user.findUnique({
-      where: { email: session.user.email },
-      include: { employer: true },
-    })
-
-    if (!user?.employer) {
-      return NextResponse.json({ activeJobs: 0, applications: 0, shortlisted: 0, hired: 0 })
+    const employer = await getEmployerForUser(session.user.email)
+    if (!employer) {
+      return NextResponse.json({ activeJobs: 0, totalJobs: 0, applications: 0, shortlisted: 0, hired: 0, teamSize: 0 })
     }
 
-    const employerId = user.employer.id
-
-    // Get job IDs for this employer
-    const myJobs = await prisma.job.findMany({
-      where: { employerId },
+    const jobIds = (await prisma.job.findMany({
+      where: { employerId: employer.id },
       select: { id: true },
-    })
-    const jobIds = myJobs.map(j => j.id)
+    })).map(j => j.id)
 
-    const [activeJobs, applications, shortlisted, hired] = await Promise.all([
-      prisma.job.count({ where: { employerId, status: "ACTIVE" } }),
+    const teamSize = await prisma.employerMember.count({ where: { employerId: employer.id } })
+
+    const [activeJobs, totalJobs, applications, shortlisted, hired] = await Promise.all([
+      prisma.job.count({ where: { employerId: employer.id, status: "ACTIVE" } }),
+      prisma.job.count({ where: { employerId: employer.id } }),
       jobIds.length > 0 ? prisma.guestApplication.count({ where: { jobId: { in: jobIds } } }) : 0,
       jobIds.length > 0 ? prisma.guestApplication.count({ where: { jobId: { in: jobIds }, status: "SHORTLISTED" } }) : 0,
       jobIds.length > 0 ? prisma.guestApplication.count({ where: { jobId: { in: jobIds }, status: "HIRED" } }) : 0,
     ])
 
-    return NextResponse.json({ activeJobs, applications, shortlisted, hired })
+    return NextResponse.json({ activeJobs, totalJobs, applications, shortlisted, hired, teamSize: teamSize + 1 })
   } catch (err) {
     console.error(err)
-    return NextResponse.json({ activeJobs: 0, applications: 0, shortlisted: 0, hired: 0 })
+    return NextResponse.json({ activeJobs: 0, totalJobs: 0, applications: 0, shortlisted: 0, hired: 0, teamSize: 1 })
   }
 }

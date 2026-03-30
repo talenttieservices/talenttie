@@ -7,7 +7,7 @@ async function getJob(slug: string) {
   try {
     return await prisma.job.findFirst({
       where: { slug, status: "ACTIVE" },
-      include: { employer: { select: { companyName: true, website: true, industry: true } } },
+      include: { employer: { select: { companyName: true, website: true, industry: true, description: true, logo: true } } },
     })
   } catch {
     return null
@@ -152,7 +152,12 @@ export default async function JobDetailPage({ params }: { params: { slug: string
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jobPostingSchema) }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }} />
-      <JobDetailClient job={{ ...job, createdAt: job.createdAt.toISOString(), employer: job.employer || undefined }} />
+      <JobDetailClient job={{
+        ...job,
+        createdAt: job.createdAt.toISOString(),
+        walkInDate: job.walkInDate ? job.walkInDate.toISOString() : null,
+        employer: job.employer || undefined,
+      }} />
     </>
   )
 }
