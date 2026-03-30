@@ -2,7 +2,6 @@
 import Link from "next/link"
 import { useEffect, useState } from "react"
 import { Briefcase, CheckCircle2, Clock, User, ArrowRight, FileText, Loader2 } from "lucide-react"
-import { useSession } from "next-auth/react"
 
 interface Application {
   id: string
@@ -21,7 +20,6 @@ const statusColors: Record<string, string> = {
 }
 
 export default function CandidateDashboard() {
-  const { data: session } = useSession()
   const [applications, setApplications] = useState<Application[]>([])
   const [loading, setLoading] = useState(true)
 
@@ -47,7 +45,7 @@ export default function CandidateDashboard() {
   return (
     <div>
       <h1 className="text-2xl font-bold text-navy mb-6">
-        Welcome back{session?.user?.name ? `, ${session.user.name.split(" ")[0]}` : ""}!
+        Welcome back!
       </h1>
 
       {loading ? (
