@@ -1,28 +1,24 @@
-"use client"
-import { useScrollReveal } from "@/hooks/useScrollReveal"
-import HeroSearch from "@/components/home/HeroSearch"
-import FeaturedJobs from "@/components/home/FeaturedJobs"
-import IndustryCards from "@/components/home/IndustryCards"
-import HowItWorks from "@/components/home/HowItWorks"
-import TopCities from "@/components/home/TopCities"
-import Testimonials from "@/components/home/Testimonials"
-import EmployerCTA from "@/components/home/EmployerCTA"
-import BlogPreview from "@/components/home/BlogPreview"
-import CallToAction from "@/components/home/CallToAction"
+import type { Metadata } from "next"
+import HomePageClient from "@/components/home/HomePageClient"
+
+export const metadata: Metadata = {
+  title: "TalentTie — Find Jobs in Banking, Insurance, Pharma & FMCG Across India",
+  description: "India's fastest-growing job portal for Tier 2 & Tier 3 cities. Find jobs in Banking, Insurance, Pharma, FMCG, IT sectors. 5,000+ openings. Apply free in 30 seconds.",
+  keywords: [
+    "jobs in india 2026", "banking jobs india", "insurance jobs", "pharma jobs",
+    "FMCG sales jobs", "relationship manager jobs", "area sales manager",
+    "jobs in tier 2 cities india", "fresher jobs india", "private job portal india",
+  ],
+  alternates: { canonical: "https://talenttie.com" },
+  openGraph: {
+    title: "TalentTie — Find Jobs in Banking, Insurance, Pharma & FMCG",
+    description: "5,000+ job openings across India. Apply in 30 seconds — no account needed.",
+    url: "https://talenttie.com",
+    type: "website",
+    images: [{ url: "/og-image.png", width: 1200, height: 630, alt: "TalentTie Job Portal" }],
+  },
+}
 
 export default function HomePage() {
-  useScrollReveal()
-  return (
-    <>
-      <HeroSearch />
-      <FeaturedJobs />
-      <IndustryCards />
-      <HowItWorks />
-      <TopCities />
-      <Testimonials />
-      <EmployerCTA />
-      <BlogPreview />
-      <CallToAction />
-    </>
-  )
+  return <HomePageClient />
 }

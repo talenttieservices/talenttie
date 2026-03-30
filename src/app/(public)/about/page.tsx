@@ -2,7 +2,18 @@ import { Target, Eye, Heart, Users, Briefcase, Building2, MapPin, ArrowRight } f
 import Link from "next/link"
 import type { Metadata } from "next"
 
-export const metadata: Metadata = { title: "About TalentTie - Connecting Talent Across India", description: "TalentTie is India's growing recruitment platform focused on Tier 2, Tier 3 cities. TalentTie Services." }
+export const metadata: Metadata = {
+  title: "About TalentTie — India's Recruitment Platform for Tier 2 & Tier 3 Cities",
+  description: "TalentTie is India's fastest-growing recruitment platform connecting job seekers in Tier 2, Tier 3 cities with top employers in Banking, Insurance, Pharma, FMCG & IT. 15,000+ candidates placed.",
+  keywords: ["about talenttie", "recruitment company india", "job placement india", "tier 2 city recruitment", "BFSI recruitment india"],
+  alternates: { canonical: "https://talenttie.com/about" },
+  openGraph: {
+    title: "About TalentTie — Connecting Talent Across India",
+    description: "India's fastest-growing recruitment platform. 15,000+ candidates placed across 500+ cities.",
+    url: "https://talenttie.com/about",
+    type: "website",
+  },
+}
 
 const values = [
   { icon: Target, title: "Mission", desc: "To bridge the employment gap in underserved Indian cities by connecting quality talent with leading employers across Banking, Insurance, Pharma, FMCG, and IT sectors." },

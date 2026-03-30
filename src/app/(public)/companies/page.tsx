@@ -2,7 +2,18 @@ import Link from "next/link"
 import { Building2, MapPin, Briefcase } from "lucide-react"
 import type { Metadata } from "next"
 
-export const metadata: Metadata = { title: "Browse Companies - Top Employers on TalentTie" }
+export const metadata: Metadata = {
+  title: "Top Hiring Companies in India — Banking, Insurance, Pharma & FMCG",
+  description: "Browse 200+ companies actively hiring on TalentTie. HDFC, Axis Bank, Kotak Life, HUL, Sun Pharma and more. Find employers hiring in your city.",
+  keywords: ["top companies hiring india", "companies hiring 2026", "employer list india", "banking companies hiring", "insurance companies recruiting"],
+  alternates: { canonical: "https://talenttie.com/companies" },
+  openGraph: {
+    title: "Top Hiring Companies in India | TalentTie",
+    description: "200+ companies actively hiring across India. Browse employers in Banking, Insurance, Pharma, FMCG & IT.",
+    url: "https://talenttie.com/companies",
+    type: "website",
+  },
+}
 
 const companies = [
   { name: "National Trust Bank", industry: "Banking", jobs: 45, location: "PAN India", slug: "national-trust-bank" },

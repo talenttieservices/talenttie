@@ -3,6 +3,7 @@
 import { useState, useRef } from "react"
 import { X, Send, CheckCircle2, Loader2, MessageCircle, Upload } from "lucide-react"
 import { SITE_CONFIG } from "@/lib/constants"
+import { GA } from "@/lib/analytics"
 
 interface QuickApplyModalProps {
   isOpen: boolean
@@ -62,6 +63,7 @@ export default function QuickApplyModal({ isOpen, onClose, jobTitle, jobSlug }: 
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || "Failed to submit")
+      GA.applySuccess(jobTitle)
       setSuccess(true)
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Something went wrong")
