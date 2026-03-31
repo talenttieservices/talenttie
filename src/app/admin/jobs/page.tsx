@@ -1,10 +1,11 @@
 "use client"
 import { useState, useEffect, useCallback } from "react"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 import {
   Search, PlusCircle, Eye, Trash2, Star, StarOff,
   RefreshCw, Upload, CheckSquare, Square, CheckCircle, XCircle,
-  ToggleLeft, ToggleRight, ChevronDown,
+  ToggleLeft, ToggleRight, ChevronDown, Users,
 } from "lucide-react"
 import { INDUSTRIES } from "@/lib/constants"
 
@@ -36,6 +37,7 @@ const STATUS_COLORS: Record<string, string> = {
 const STATUS_ORDER = ["DRAFT", "ACTIVE", "PAUSED", "CLOSED"]
 
 export default function AdminJobsPage() {
+  const router = useRouter()
   const [jobs, setJobs] = useState<Job[]>([])
   const [search, setSearch] = useState("")
   const [statusFilter, setStatusFilter] = useState("ALL")
@@ -265,8 +267,10 @@ export default function AdminJobsPage() {
               </thead>
               <tbody>
                 {jobs.map(j => (
-                  <tr key={j.id} className={`border-b border-gray-50 hover:bg-gray-50/60 transition-colors ${selected.has(j.id) ? "bg-primary/5" : ""}`}>
-                    <td className="px-4 py-3">
+                  <tr key={j.id}
+                    className={`border-b border-gray-50 hover:bg-primary/5 transition-colors cursor-pointer ${selected.has(j.id) ? "bg-primary/5" : ""}`}
+                    onClick={() => router.push(`/admin/applications?jobId=${j.id}`)}>
+                    <td className="px-4 py-3" onClick={e => e.stopPropagation()}>
                       <button onClick={() => toggleSelect(j.id)}>
                         {selected.has(j.id)
                           ? <CheckSquare className="w-4 h-4 text-primary" />
@@ -274,26 +278,27 @@ export default function AdminJobsPage() {
                       </button>
                     </td>
                     <td className="px-4 py-3">
-                      <div className="font-semibold text-navy max-w-[200px] truncate">{j.title}</div>
+                      <div className="font-semibold text-navy max-w-[200px] truncate group-hover:text-primary">{j.title}</div>
                       <div className="text-xs text-gray-400">{j.employer?.companyName || "TalentTie"} · {j.vacancies} vac · {j.jobType?.replace("_", " ")}</div>
                     </td>
                     <td className="px-4 py-3 text-gray-600 text-xs">{j.industry || "—"}</td>
                     <td className="px-4 py-3 text-gray-500 text-xs">{j.city}, {j.state}</td>
-                    <td className="px-4 py-3 text-center">
-                      <Link href={`/admin/applications?jobId=${j.id}`} className="font-bold text-primary hover:underline text-sm">
+                    <td className="px-4 py-3 text-center" onClick={e => e.stopPropagation()}>
+                      <Link href={`/admin/applications?jobId=${j.id}`}
+                        className="inline-flex items-center gap-1 font-bold text-primary hover:bg-primary/10 px-2 py-1 rounded-lg text-sm transition-colors">
+                        <Users className="w-3.5 h-3.5" />
                         {j._count?.applications ?? 0}
                       </Link>
                     </td>
                     <td className="px-4 py-3 text-gray-400 text-xs">{new Date(j.createdAt).toLocaleDateString("en-IN", { day: "2-digit", month: "short" })}</td>
-                    <td className="px-4 py-3">
+                    <td className="px-4 py-3" onClick={e => e.stopPropagation()}>
                       <button onClick={() => updateJob(j.id, { status: cycleStatus(j.status) })}
                         className={`px-2.5 py-1 rounded-full text-xs font-medium cursor-pointer transition-all hover:opacity-80 ${STATUS_COLORS[j.status] || "bg-gray-100 text-gray-500"}`}
                         title="Click to cycle status">
                         {j.status}
                       </button>
                     </td>
-                    {/* Live on portal = ACTIVE + approvedByAdmin */}
-                    <td className="px-4 py-3 text-center">
+                    <td className="px-4 py-3 text-center" onClick={e => e.stopPropagation()}>
                       <button onClick={() => updateJob(j.id, { approvedByAdmin: !j.approvedByAdmin })}
                         className={`p-1.5 rounded-lg transition-colors ${j.approvedByAdmin && j.status === "ACTIVE" ? "text-green-500 hover:bg-green-50" : "text-gray-300 hover:text-green-500 hover:bg-green-50"}`}
                         title={j.approvedByAdmin && j.status === "ACTIVE" ? "Live on portal — click to unpublish" : "Not live — click to approve"}>
@@ -302,15 +307,22 @@ export default function AdminJobsPage() {
                           : <ToggleLeft className="w-5 h-5" />}
                       </button>
                     </td>
-                    <td className="px-4 py-3 text-center">
+                    <td className="px-4 py-3 text-center" onClick={e => e.stopPropagation()}>
                       <button onClick={() => updateJob(j.id, { featured: !j.featured })}
                         className={`p-1.5 rounded-lg transition-colors ${j.featured ? "text-amber-500 hover:bg-amber-50" : "text-gray-300 hover:text-amber-400 hover:bg-amber-50"}`}
                         title={j.featured ? "Remove from featured" : "Mark as featured"}>
                         {j.featured ? <Star className="w-4 h-4 fill-amber-500" /> : <StarOff className="w-4 h-4" />}
                       </button>
                     </td>
-                    <td className="px-4 py-3">
+                    <td className="px-4 py-3" onClick={e => e.stopPropagation()}>
                       <div className="flex items-center gap-1">
+                        <Link href={`/admin/jobs/${j.id}/edit`}
+                          className="p-1.5 hover:bg-blue-50 rounded-lg text-gray-400 hover:text-blue-600 transition-colors" title="Edit job">
+                          <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+                            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                          </svg>
+                        </Link>
                         <Link href={`/jobs/${j.slug}`} target="_blank"
                           className="p-1.5 hover:bg-gray-100 rounded-lg text-gray-400 hover:text-navy transition-colors" title="View live">
                           <Eye className="w-4 h-4" />

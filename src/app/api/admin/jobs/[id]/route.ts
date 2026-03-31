@@ -4,6 +4,24 @@ import { prisma } from "@/lib/prisma"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 
+export async function GET(_req: Request, { params }: { params: { id: string } }) {
+  try {
+    const session = await getServerSession(authOptions)
+    if (!session || session.user.role !== "ADMIN") {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    }
+    const job = await prisma.job.findUnique({
+      where: { id: params.id },
+      include: { employer: { select: { companyName: true } } },
+    })
+    if (!job) return NextResponse.json({ error: "Not found" }, { status: 404 })
+    return NextResponse.json({ job })
+  } catch (err) {
+    console.error(err)
+    return NextResponse.json({ error: "Failed to fetch job" }, { status: 500 })
+  }
+}
+
 export async function PATCH(req: Request, { params }: { params: { id: string } }) {
   try {
     const session = await getServerSession(authOptions)
